@@ -1,0 +1,1 @@
+(dyn libp2p_core::transport::boxed::Abstract<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> + Send + Unpin + 'static)

@@ -1,0 +1,1 @@
+/Users/zerefdegnl/projects/personal/chat-app/target/debug/libclient_display.rlib: /Users/zerefdegnl/projects/personal/chat-app/client-display/src/lib.rs /Users/zerefdegnl/projects/personal/chat-app/gossip/src/lib.rs /Users/zerefdegnl/projects/personal/chat-app/gossip/src/structs/identity.rs /Users/zerefdegnl/projects/personal/chat-app/gossip/src/structs/mod.rs
