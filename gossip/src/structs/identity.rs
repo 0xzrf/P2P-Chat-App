@@ -1,3 +1,4 @@
+use crate::{constants::MAX_KNOWN_PEER, errors::IdentityErrors};
 use futures::prelude::*;
 use libp2p::{
     Multiaddr, PeerId,
@@ -6,12 +7,11 @@ use libp2p::{
     swarm::SwarmEvent,
     tcp, yamux,
 };
-
-use std::{collections::HashMap, error::Error};
-
+use rand::Rng;
+use std::collections::HashMap;
 pub struct PeerIdentity {
-    pub peer_id: PeerId,
-    pub known_peers: HashMap<PeerId, PeerInfo>,
+    peer_id: PeerId,
+    known_peers: HashMap<PeerId, PeerInfo>, // Hashmap for easier PeerInfo
 }
 
 /// Struct containing info of a specific Peer
@@ -29,21 +29,25 @@ impl PeerIdentity {
     }
 
     /// Discovers nodes and adds them to the known peers
-    pub async fn find_peers(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn find_peers(&mut self) -> Result<(), IdentityErrors> {
         let mut swarm = libp2p::SwarmBuilder::with_new_identity()
             .with_tokio()
             .with_tcp(
                 tcp::Config::default(),
                 noise::Config::new,
                 yamux::Config::default,
-            )?
+            )
+            .map_err(|_| IdentityErrors::FailedToStartSwarm)?
             .with_behaviour(|_| {
                 TokioBehaviour::new(MdnsConfig::default(), self.peer_id)
                     .expect("Couldn't create a tokio mdns behaviour")
-            })?
+            })
+            .map_err(|_| IdentityErrors::FailedToStartSwarm)?
             .build();
 
-        swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
+        swarm
+            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap()) // Okay since we're parsing a constant
+            .map_err(|_| IdentityErrors::FailedToStartListening)?;
 
         loop {
             match swarm.select_next_some().await {
@@ -55,8 +59,14 @@ impl PeerIdentity {
                             peer.1.to_string()
                         );
 
-                        self.known_peers
-                            .insert(peer.0, PeerInfo { multi_addr: peer.1 });
+                        let mut rng = rand::rng();
+
+                        // Limiting the no. of nodes known by a peer, so to avoid stack overflow as the network grows bigger
+                        // also randomly adding nodes for the random p2p topology
+                        if rng.random::<bool>() && self.known_peers.len() <= MAX_KNOWN_PEER {
+                            self.known_peers
+                                .insert(peer.0, PeerInfo { multi_addr: peer.1 });
+                        }
                     }
                 }
                 SwarmEvent::Behaviour(MdnsEvents::Expired(peers)) => {
@@ -67,5 +77,14 @@ impl PeerIdentity {
                 _ => {}
             }
         }
+    }
+
+    // GETTERS
+    pub fn get_peer(&self) -> &PeerId {
+        &self.peer_id
+    }
+
+    pub fn get_known_peers(&self) -> &HashMap<PeerId, PeerInfo> {
+        &self.known_peers
     }
 }
