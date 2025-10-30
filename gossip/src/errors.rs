@@ -21,4 +21,7 @@ pub enum MessagePropogationErrors {
 
     #[error("Not Subscribed to topic")]
     UnableToUnsubscribe,
+
+    #[error("Invalid Command")]
+    InvalidCommand,
 }
