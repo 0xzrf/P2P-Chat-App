@@ -11,6 +11,15 @@ pub enum Commands<T> {
     SendMessage((T, T)),
     Help,
     InvalidCommand,
+    PrintKnownNodes,
+    PrintInfo,
+}
+
+pub enum MessageType {
+    PeerSubscribed(String), // Peer and topic
+    PeerUnsubscribed(String),
+    TopicMessage,
+    InvalidMessage,
 }
 
 #[derive(NetworkBehaviour)]
